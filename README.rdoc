@@ -1,0 +1,5 @@
+= NAME
+	crumbs - fetch, build, and install UNIX/Mac OS X applications.
+
+= SYNOPSIS
+
