@@ -3,7 +3,7 @@ require "pathname"
 require "uri"
 require "yaml"
 
-$: << File.dirname(__FILE__)
+$: << File.dirname(File.expand_path(__FILE__))
 
 require "crumbs/core_ext"
 
@@ -14,8 +14,12 @@ module Crumbs
 	end
 	include Exceptions
 
-	user_config = YAML.load('~/.crumbs/config'.expand.open)
-	Config = OpenStruct.new(user_config)
+	DefaultConfig = {
+		:prefix => __FILE__.to_path + '../../',
+	}
+
+	user_config = YAML.load('~/.crumbs/config'.to_path.open)
+	Config = OpenStruct.new(DefaultConfig.merge(user_config))
 
 	autoload :Package, 'crumbs/package'
 end
