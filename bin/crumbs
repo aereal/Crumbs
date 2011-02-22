@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+#
+# vim:set ft=ruby:
+
+require "optparse"
+
+module Crumbs
+	Options = {}
+
+	class Command
+		def self.register(name, opts=OptionParser.new, &block)
+			(@@commands ||= Hash.new {|h, k|
+				$stderr.puts "no such command: #{k}"
+				exit 1
+			})[name.intern] = new(opts, &block)
+		end
+
+		def self.[](cmd)
+			@@commands[cmd]
+		end
+
+		def self.dispatch(args)
+			self[args.shift.intern][*args]
+		end
+
+		def initialize(opts, &block)
+			@option_parser = opts
+			@callback = block
+		end
+
+		def [](*args)
+			@option_parser.parse!(args)
+			@callback.call(*args)
+		end
+	end
+end
+
+Crumbs::Command.register :install do |pkg_name|
+	puts "install #{pkg_name}"
+end
+
+Crumbs::Command.register :remove do |pkg_name|
+	puts "remove #{pkg_name}"
+end
+
+Crumbs::Command.register :search do |args|
+	puts "search #{pkg_name}"
+end
+
+Crumbs::Command.register :commands do
+	class Crumbs::Command
+		puts @@commands.keys.join(" ")
+	end
+end
+
+OptionParser.new {|parser|
+	parser.on("-d", "--debug", "print debug messages.") {|v| OPTS[:debug] = v }
+}.order!(ARGV)
+
+Crumbs::Command.dispatch(ARGV)
+
