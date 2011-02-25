@@ -2,17 +2,30 @@
 #
 # vim:set ft=ruby:
 
+require "open-uri"
 require "optparse"
+require "pathname"
+require "uri"
+
+class String
+	def to_p
+		Pathname.new(self)
+	end
+end
 
 module Crumbs
-	Options = {}
+	Config = {
+		:home => home = "~".to_p.expand_path,
+		:system_path => system_path = home + ".crumbs",
+		:src_path => src_path = system_path + "src",
+	}.each {|k, v| v.mkpath if Pathname === v && v.parent.exist? }
 
 	class Command
 		def self.register(name, opts=OptionParser.new, &block)
 			(@@commands ||= Hash.new {|h, k|
 				$stderr.puts "no such command: #{k}"
 				exit 1
-			})[name.intern] = new(opts, &block)
+			}).store(name.intern, new(opts, &block))
 		end
 
 		def self.[](cmd)
@@ -32,29 +45,28 @@ module Crumbs
 			@option_parser.parse!(args)
 			@callback.call(*args)
 		end
-	end
-end
 
-Crumbs::Command.register :install do |pkg_name|
-	puts "install #{pkg_name}"
-end
+		register :commands do
+			puts @@commands.keys.join(" ")
+		end
 
-Crumbs::Command.register :remove do |pkg_name|
-	puts "remove #{pkg_name}"
-end
-
-Crumbs::Command.register :search do |args|
-	puts "search #{pkg_name}"
-end
-
-Crumbs::Command.register :commands do
-	class Crumbs::Command
-		puts @@commands.keys.join(" ")
+		register :fetch do |url_str|
+			begin
+				url = URI(url_str)
+				puts "Fetching #{url} ......"
+				content = url.read
+				open(Config[:src_path] + url.path.to_p.basename, "wb") do |f|
+					f << content
+				end
+			rescue OpenURI::HTTPError
+				puts "Failed downloading"
+			end
+		end
 	end
 end
 
 OptionParser.new {|parser|
-	parser.on("-d", "--debug", "print debug messages.") {|v| OPTS[:debug] = v }
+	parser.on("-d", "--debug", "print debug messages.") {|v| Crumbs::Config[:debug] = v }
 }.order!(ARGV)
 
 Crumbs::Command.dispatch(ARGV)
